@@ -1,7 +1,7 @@
 import os
 import random
 import pylab
-from flask import Flask, escape, request
+from flask import Flask, jsonify, escape, request
 
 # MQTT broker 地址
 HOST = "192.168.31.142"
@@ -19,6 +19,8 @@ angle_filter = []
 # setup App
 # *****************************************
 app = Flask(__name__)
+# jsonify configure Chinese normal display
+app.config["JSON_AS_ASCII"] = False
 
 
 # *****************************************
@@ -107,6 +109,20 @@ description:
 def welcome():
     name = request.args.get("name", "World")
     return f'Welcome to data analysis service, {escape(name)}!'
+
+
+'''
+description:
+    collect data for analysis
+'''
+
+
+@app.route('/analysis/dataCollect', methods=['POST'])
+def data_collect():
+    # get data from request body
+    request_data = request.json
+    print(request_data.get('result')[0].get('data'))
+    return jsonify({"code": 200, "message": "数据推送成功！"})
 
 
 def main():
