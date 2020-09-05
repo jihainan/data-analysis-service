@@ -1,7 +1,7 @@
-import paho.mqtt.client as mqtt
 import os
 import random
 import pylab
+from flask import Flask, escape, request
 
 # MQTT broker 地址
 HOST = "192.168.31.142"
@@ -15,14 +15,22 @@ lastMsg = 0
 angle = []
 angle_filter = []
 
+# *****************************************
+# setup App
+# *****************************************
+app = Flask(__name__)
 
-def kalman(newMeasure):
+
+# *****************************************
+# defined kalman algorithm
+# *****************************************
+def kalman(new_measure):
     global x
     global p
     global r
     k = p / (p + r)
     p = (1 - k) * p
-    x = x + k * (newMeasure - x)
+    x = x + k * (new_measure - x)
     return x
 
 
@@ -80,6 +88,7 @@ def on_message_callback(client, userdata, message):
         print("")
         os.system(command)
 
+
 # *****************************************
 # connected to MQTT broker
 # *****************************************
@@ -88,12 +97,20 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("YanniiTopic")
 
 
+'''
+description:
+    welcome message
+'''
+
+
+@app.route('/')
+def welcome():
+    name = request.args.get("name", "World")
+    return f'Welcome to data analysis service, {escape(name)}!'
+
+
 def main():
-    client = mqtt.Client('test')
-    client.connect(HOST, PORT, 60)
-    client.on_connect = on_connect
-    client.on_message = on_message_callback
-    client.loop_forever()
+    app.run(host='0.0.0.0', port=7777)
 
 
 if __name__ == '__main__':
