@@ -1,11 +1,9 @@
 import os
-import random
 import pylab
 from flask import Flask, jsonify, escape, request
+import requests as HttpRequest
 
-# MQTT broker 地址
-HOST = "192.168.31.142"
-PORT = 1883
+# kalman algorithm params
 x = 0
 p = 0.5
 r = 0.4
@@ -14,6 +12,9 @@ lastMsg = 0
 
 angle = []
 angle_filter = []
+
+# command url
+command_url = 'http://192.168.1.101:7777/'
 
 # *****************************************
 # setup App
@@ -51,52 +52,44 @@ def plotfig(a, b):
 
 
 # *****************************************
-# MQTT message callback for receive measurement data
+# data process function
 # *****************************************
-def on_message_callback(client, userdata, message):
-    msg = str(message.payload)
-    msg = msg[2:-1]
+def data_process(new_value):
 
-    # send DataTopic---one angle
-    if msg.isdigit():
+    # initialize x
+    global cycle
+    global x
+    global p
+    global lastMsg
 
-        print("====================================")
-        print("Get data " + msg)
+    if cycle == 0:
+        x = new_value
+    cycle += 1
 
-        # initialize x
-        global cycle
-        global x
-        global p
-        global lastMsg
+    if abs(new_value - lastMsg) > 10:
+        x = new_value
+        p = 0.5
+    lastMsg = new_value
 
-        if cycle == 0:
-            x = int(msg)
-        cycle += 1
-
-        if abs(int(msg) - lastMsg) > 10:
-            x = int(msg)
-            p = 0.5
-        lastMsg = int(msg)
-
-        result = int(kalman(int(msg)))
-        angle.append(int(msg))
-        angle_filter.append(result)
-        if len(angle_filter) == 100:
-            plotfig(angle, angle_filter)
-        # publish message to specific topic
-        command = "mosquitto_pub -h 192.168.31.142 -t YanniTopic  -m " + str(result) + str(result)
-        print("After Kalman, send terminal " + str(result))
-        print("====================================")
-        print("")
-        os.system(command)
+    result = int(kalman(new_value))
+    angle.append(new_value)
+    angle_filter.append(result)
+    # draw feature
+    if len(angle_filter) == 100:
+        plotfig(angle, angle_filter)
+    return result
 
 
 # *****************************************
-# connected to MQTT broker
+# send command to device
 # *****************************************
-def on_connect(client, userdata, flags, rc):
-    print("Connected with result code " + str(rc))
-    client.subscribe("YanniiTopic")
+def send_command(content):
+    global command_url
+    request_params = {
+        'data': content
+    }
+    # send command request
+    HttpRequest.get(command_url, request_params)
 
 
 '''
@@ -114,15 +107,48 @@ def welcome():
 '''
 description:
     collect data for analysis
+methods:
+    ['POST']
+requestBody:
+    EdgeX Foundry event data
+    eg: {
+        "id": "cdsdf-sdkbe-sdsds-sdsds-jidef",
+        "device": "MQ_DEVICE",
+        "origin": 1599308375787,
+        "readings": [{
+            "id": "cdsdf-sdkbe-sdsds-sdsds-jidef",
+            "origin": 1599308375787,
+            "device", "MQ_DEVICE",
+            "name", "randnum",
+            "value": 123.223
+        }]
+    }
 '''
 
 
 @app.route('/analysis/dataCollect', methods=['POST'])
 def data_collect():
+    global angle_filter
     # get data from request body
-    request_data = request.json
-    print(request_data.get('result')[0].get('data'))
-    return jsonify({"code": 200, "message": "数据推送成功！"})
+    request_json = request.json
+
+    print(request_json.get('result')[0].get('data'))
+    # data form request
+    new_data = request_json.get('readings')[0].get('value')
+    print("====================================")
+    print("Get data from device " + str(new_data))
+    # analysis result by kalman algorithm
+    analysis_result = data_process(new_data)
+    # last result of kalman algorithm
+    last_result = angle_filter[len(angle_filter)-1] if len(angle_filter) else 0
+    # determine whether to send command to device
+    if last_result != analysis_result:
+        send_command(analysis_result)
+        print("After Kalman, send target " + str(analysis_result))
+        print("====================================")
+        return jsonify({"code": 200, "message": "command send successfully!"})
+
+    return jsonify({"code": 200, "message": "data collect successfully!！"})
 
 
 def main():
