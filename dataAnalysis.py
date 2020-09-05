@@ -118,8 +118,8 @@ requestBody:
         "readings": [{
             "id": "cdsdf-sdkbe-sdsds-sdsds-jidef",
             "origin": 1599308375787,
-            "device", "MQ_DEVICE",
-            "name", "randnum",
+            "device": "MQ_DEVICE",
+            "name": "randnum",
             "value": 123.223
         }]
     }
@@ -131,16 +131,14 @@ def data_collect():
     global angle_filter
     # get data from request body
     request_json = request.json
-
-    print(request_json.get('result')[0].get('data'))
     # data form request
     new_data = request_json.get('readings')[0].get('value')
     print("====================================")
     print("Get data from device " + str(new_data))
+    # last result of kalman algorithm
+    last_result = angle_filter[len(angle_filter) - 1] if len(angle_filter) else 0
     # analysis result by kalman algorithm
     analysis_result = data_process(new_data)
-    # last result of kalman algorithm
-    last_result = angle_filter[len(angle_filter)-1] if len(angle_filter) else 0
     # determine whether to send command to device
     if last_result != analysis_result:
         send_command(analysis_result)
