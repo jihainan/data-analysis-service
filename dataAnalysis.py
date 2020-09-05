@@ -15,6 +15,8 @@ angle_filter = []
 
 # command url
 command_url = 'http://192.168.1.101:7777/'
+# statistic url
+statistic_url = 'http://192.168.1.101:7777/'
 
 # *****************************************
 # setup App
@@ -85,9 +87,11 @@ def data_process(new_value):
 # *****************************************
 def send_command(content):
     global command_url
+    global statistic_url
     request_params = {
         'data': content
     }
+    HttpRequest.get(statistic_url ,request_params)
     # send command request
     HttpRequest.get(command_url, request_params)
 
