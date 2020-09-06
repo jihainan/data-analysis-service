@@ -1,7 +1,6 @@
-import os
 import pylab
 from flask import Flask, jsonify, escape, request
-import requests as HttpRequest
+import requests as http_request
 
 # kalman algorithm params
 x = 0
@@ -43,6 +42,7 @@ def kalman(new_measure):
 # draw feature with measurement/estimation
 # *****************************************
 def plotfig(a, b):
+    pylab.figure().clf()
     pylab.figure()
     pylab.plot(a, 'k*', label='measurement')
     pylab.plot(b, 'b^', label='estimation')
@@ -77,8 +77,9 @@ def data_process(new_value):
     angle.append(new_value)
     angle_filter.append(result)
     # draw feature
-    if len(angle_filter) == 100:
+    if len(angle_filter) % 100 == 0:
         plotfig(angle, angle_filter)
+    # plotfig(angle, angle_filter)
     return result
 
 
@@ -91,9 +92,9 @@ def send_command(content):
     request_params = {
         'data': content
     }
-    HttpRequest.get(statistic_url ,request_params)
+    http_request.get(statistic_url ,request_params)
     # send command request
-    HttpRequest.get(command_url, request_params)
+    http_request.get(command_url, request_params)
 
 
 '''
@@ -135,14 +136,14 @@ def data_collect():
     global angle_filter
     # get data from request body
     request_json = request.json
-    # data form request
+    # data form request string
     new_data = request_json.get('readings')[0].get('value')
     print("====================================")
-    print("Get data from device " + str(new_data))
+    print("Get data from device " + new_data)
     # last result of kalman algorithm
     last_result = angle_filter[len(angle_filter) - 1] if len(angle_filter) else 0
     # analysis result by kalman algorithm
-    analysis_result = data_process(new_data)
+    analysis_result = data_process(int(new_data))
     # determine whether to send command to device
     if last_result != analysis_result:
         send_command(analysis_result)
