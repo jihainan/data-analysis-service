@@ -13,7 +13,7 @@ angle = []
 angle_filter = []
 
 # command url
-command_url = 'http://192.168.1.101:7777/'
+command_url = 'http://127.0.0.1:48082/api/v1/device/a7754a90-599f-47ac-a8a6-209505dd7220/command/d57fc15c-87af-4c5d-91f7-0c85a4c6f813'
 # statistic url
 statistic_url = 'http://192.168.1.101:7777/'
 
@@ -90,11 +90,15 @@ def send_command(content):
     global command_url
     global statistic_url
     request_params = {
-        'data': content
+        'message': str(content)
     }
-    http_request.get(statistic_url ,request_params)
+    headers = {
+        'content-type': 'application/json'
+    }
+    http_request.get(statistic_url, request_params)
     # send command request
-    http_request.get(command_url, request_params)
+    r = http_request.put(command_url, json=request_params, headers=headers)
+    print(r.text)
 
 
 '''
