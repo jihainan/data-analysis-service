@@ -17,6 +17,9 @@ command_url = 'http://127.0.0.1:48082/api/v1/device/a7754a90-599f-47ac-a8a6-2095
 # statistic url
 statistic_url = 'http://192.168.1.101:7777/'
 
+# device mode
+device_mode = True
+
 # *****************************************
 # setup App
 # *****************************************
@@ -57,7 +60,6 @@ def plotfig(a, b):
 # data process function
 # *****************************************
 def data_process(new_value):
-
     # initialize x
     global cycle
     global x
@@ -156,6 +158,18 @@ def data_collect():
         return jsonify({"code": 200, "message": "command send successfully!"})
 
     return jsonify({"code": 200, "message": "data collect successfully!！"})
+
+
+@app.route('/analysis/changeMode', methods=['POST'])
+def change_mode():
+    global device_mode
+    print(device_mode)
+    # get data from request body
+    request_json = request.json
+    # get new state
+    device_mode = request_json.get('state')
+
+    return jsonify({"code": 200, "message": "success"})
 
 
 def main():
