@@ -140,6 +140,7 @@ requestBody:
 @app.route('/analysis/dataCollect', methods=['POST'])
 def data_collect():
     global angle_filter
+    global device_mode
     # get data from request body
     request_json = request.json
     # data form request string
@@ -151,7 +152,7 @@ def data_collect():
     # analysis result by kalman algorithm
     analysis_result = data_process(int(new_data))
     # determine whether to send command to device
-    if last_result != analysis_result:
+    if last_result != analysis_result and device_mode:
         send_command(analysis_result)
         print("After Kalman, send target " + str(analysis_result))
         print("====================================")
